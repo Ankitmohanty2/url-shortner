@@ -2,7 +2,6 @@
 
 Production-grade URL shortener with Fastify, React, MongoDB, Redis, and Nginx.
 
-
 ## Architecture
 
 ```
