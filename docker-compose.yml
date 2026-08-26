@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - url-shortener-network
+    restart: unless-stopped
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - SERVER_PORT=3000
+      - MONGODB_URI=mongodb://mongo:27017/url-shortener
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_TTL_SECONDS=3600
+      - CLIENT_URL=http://localhost
+      - RATE_LIMIT_MAX=100
+      - RATE_LIMIT_WINDOW_MS=900000
+      - SHORT_CODE_LENGTH=7
+      - SHORT_CODE_MAX_RETRIES=5
+      - LOG_LEVEL=info
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - url-shortener-network
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7-jammy
+    environment:
+      - MONGO_INITDB_DATABASE=url-shortener
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - url-shortener-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/url-shortener --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - url-shortener-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
+  redis-data:
+
+networks:
+  url-shortener-network:
+    driver: bridge
