@@ -11,7 +11,6 @@ Client → Nginx → 3× Fastify → MongoDB (unique index)
 ```
 
 
-
 ## Tech Stack
 
 | Layer | Technology |
