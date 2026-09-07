@@ -10,6 +10,8 @@ Client → Nginx → 3× Fastify → MongoDB (unique index)
                   Redis (cache)
 ```
 
+
+
 ## Tech Stack
 
 | Layer | Technology |
